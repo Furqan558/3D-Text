@@ -20,19 +20,32 @@ const scene = new THREE.Scene();
  * Textures
  */
 const textureLoader = new THREE.TextureLoader();
-const matcapTexture = textureLoader.load("textures/matcaps/1.png");
+const textureOptions = {
+  "Texture 1": "textures/matcaps/1.png",
+  "Texture 2": "textures/matcaps/2.png",
+  "Texture 3": "textures/matcaps/3.png",
+  "Texture 4": "textures/matcaps/4.png",
+  "Texture 5": "textures/matcaps/5.png",
+  "Texture 6": "textures/matcaps/6.png",
+  "Texture 7": "textures/matcaps/7.png",
+  "Texture 8": "textures/matcaps/8.png",
+};
+const textureNames = Object.keys(textureOptions); // Human-friendly names
+let matcapTexture = textureLoader.load(textureOptions[textureNames[0]]);
 
 /**
  * Fonts
  */
 const fontLoader = new FontLoader();
-fontLoader.load("/fonts/helvetiker_regular.typeface.json", (font) => {
-  //Material
-  const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
+let textMesh = null;
 
-  //Text
-  const textGeometry = new TextGeometry("Furqan - Creative Developer", {
-    font: font,
+const createText = (text) => {
+  if (textMesh) {
+    scene.remove(textMesh);
+  }
+
+  const textGeometry = new TextGeometry(text, {
+    font: loadedFont,
     size: 0.5,
     height: 0.2,
     depth: 0.1,
@@ -45,25 +58,63 @@ fontLoader.load("/fonts/helvetiker_regular.typeface.json", (font) => {
   });
   textGeometry.center();
 
-  const text = new THREE.Mesh(textGeometry, material);
-  scene.add(text);
+  textMesh = new THREE.Mesh(textGeometry, sharedMaterial); // Use sharedMaterial
+  scene.add(textMesh);
+};
 
-  //Donuts
-  const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 32, 64);
+let loadedFont = null;
+fontLoader.load("/fonts/helvetiker_regular.typeface.json", (font) => {
+  loadedFont = font;
 
-  for (let i = 0; i < 300; i++) {
-    const donut = new THREE.Mesh(donutGeometry, material);
-    donut.position.x = (Math.random() - 0.5) * 10;
-    donut.position.y = (Math.random() - 0.5) * 10;
-    donut.position.z = (Math.random() - 0.5) * 10;
-    donut.rotation.x = Math.random() * Math.PI;
-    donut.rotation.y = Math.random() * Math.PI;
-    const scale = Math.random();
-    donut.scale.set(scale, scale, scale);
+  // Initial text
+  createText(
+    "Furqan - Creative Developer",
+    new THREE.MeshMatcapMaterial({ matcap: matcapTexture })
+  );
+});
 
-    scene.add(donut);
+/**
+ * GUI Controls
+ */
+const guiControls = {
+  text: "Furqan - Creative Developer",
+  texture: textureNames[0], // Default to the first texture name
+};
+
+// Shared material for both text and donuts
+const sharedMaterial = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
+
+gui.add(guiControls, "text").onChange((value) => {
+  if (loadedFont) {
+    createText(value); // Use sharedMaterial for text
   }
 });
+
+gui.add(guiControls, "texture", textureNames).onChange((value) => {
+  const texturePath = textureOptions[value]; // Get the file path from the name
+  matcapTexture = textureLoader.load(texturePath);
+  matcapTexture.needsUpdate = true; // Ensure the texture is updated
+  sharedMaterial.matcap = matcapTexture; // Update the shared material
+  sharedMaterial.needsUpdate = true; // Mark the material as needing an update
+});
+
+/**
+ * Donuts
+ */
+const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 32, 64);
+
+for (let i = 0; i < 300; i++) {
+  const donut = new THREE.Mesh(donutGeometry, sharedMaterial);
+  donut.position.x = (Math.random() - 0.5) * 10;
+  donut.position.y = (Math.random() - 0.5) * 10;
+  donut.position.z = (Math.random() - 0.5) * 10;
+  donut.rotation.x = Math.random() * Math.PI;
+  donut.rotation.y = Math.random() * Math.PI;
+  const scale = Math.random();
+  donut.scale.set(scale, scale, scale);
+
+  scene.add(donut);
+}
 
 /**
  * Sizes
